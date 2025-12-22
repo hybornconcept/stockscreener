@@ -20,22 +20,29 @@ def get_catalysts(symbol):
     except Exception as e:
         return []
 
-def get_latest_headline(symbol):
+def get_latest_headline(symbol, max_words=50):
     """
-    Fetches the latest news headline as a catalyst summary (approx < 50 words).
+    Fetches the latest news headline as a catalyst summary (max 50 words).
+    Returns a concise summary of the most recent news for the stock.
     """
     try:
-        news = get_catalysts(symbol)
-        if news:
-            latest = news[0]
-            # Create a summary string
-            summary = f"{latest['Title']} ({latest['Publisher']})"
-            # Truncate if too long (rough word count)
-            words = summary.split()
-            if len(words) > 50:
-                summary = " ".join(words[:50]) + "..."
-            return summary
+        ticker = yf.Ticker(symbol)
+        news_items = ticker.news
+        
+        if news_items and len(news_items) > 0:
+            latest = news_items[0]
+            title = latest.get('title', '')
+            
+            # Create a clean summary
+            words = title.split()
+            if len(words) > max_words:
+                summary = " ".join(words[:max_words]) + "..."
+            else:
+                summary = title
+                
+            return summary if summary else "No recent news"
+        else:
+            return "No recent news"
+            
     except Exception as e:
-        # print(f"News error for {symbol}: {e}")
-        pass
-    return "No recent news found"
+        return "No recent news"

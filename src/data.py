@@ -61,7 +61,6 @@ def fetch_market_data(tickers):
                     'Time': current_time,
                     'Price': float(price),
                     'Change %': float(change_pct),
-                    'Volume': int(volume),
                     'Avg Volume': int(avg_volume),
                     'Rel Volume': float(rel_vol),
                     'Float': 'N/A' # Placeholder, will enrich later
@@ -77,22 +76,41 @@ def fetch_market_data(tickers):
 
 def enrich_with_float(df):
     """
-    Fetches Float data for the filtered DataFrame. 
+    Fetches Float data for the filtered DataFrame with improved error handling.
     """
     floats = []
     for symbol in df['Symbol']:
         try:
-            # fast_info is generally faster and contains float_shares
-            fast_info = yf.Ticker(symbol).fast_info
-            # Check safely
-            if 'float_shares' in fast_info:
-                f = fast_info['float_shares']
-            else:
-                # Fallback to .info (slower)
-                f = yf.Ticker(symbol).info.get('floatShares', None)
+            ticker = yf.Ticker(symbol)
+            float_shares = None
             
-            floats.append(format_number(f) if f else 'N/A')
-        except:
+            # Method 1: Try fast_info first
+            try:
+                fast_info = ticker.fast_info
+                if hasattr(fast_info, 'shares') and hasattr(fast_info, 'shares_outstanding'):
+                    # Some APIs provide float directly
+                    float_shares = getattr(fast_info, 'shares', None)
+            except:
+                pass
+            
+            # Method 2: Try info dictionary
+            if float_shares is None:
+                try:
+                    info = ticker.info
+                    float_shares = info.get('floatShares', None)
+                    if float_shares is None:
+                        float_shares = info.get('sharesOutstanding', None)
+                except:
+                    pass
+            
+            # Format the result
+            if float_shares and float_shares > 0:
+                floats.append(format_number(float_shares))
+            else:
+                floats.append('N/A')
+                
+        except Exception as e:
             floats.append('N/A')
+            
     df['Float'] = floats
     return df

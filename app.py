@@ -60,10 +60,13 @@ if st.button("Refresh Data") or "scan_results" not in st.session_state:
             if not filtered_df.empty:
                 filtered_df = enrich_with_float(filtered_df)
                 
-                # Fetch Catalysts
+                # Fetch Catalysts only for stocks with positive % change
                 catalysts = []
-                for sym in filtered_df['Symbol']:
-                    catalysts.append(get_latest_headline(sym))
+                for idx, row in filtered_df.iterrows():
+                    if row['Change %'] > 0:
+                        catalysts.append(get_latest_headline(row['Symbol']))
+                    else:
+                        catalysts.append("N/A - Negative change")
                 filtered_df['Catalyst'] = catalysts
                 
             st.session_state['filtered_results'] = filtered_df
@@ -77,15 +80,15 @@ if 'filtered_results' in st.session_state:
     
     if not df_res.empty:
         st.subheader(f"Top Gainers ({len(df_res)} Matches)")
-        # Reorder columns to match request roughly
-        # Change %, Symbol, Price, Volume, Float, Rel Volume, Time, Catalyst
-        display_cols = ['Change %', 'Symbol', 'Price', 'Volume', 'Float', 'Rel Volume', 'Time', 'Catalyst']
+        # Reorder columns - removed Volume, kept only Avg Volume
+        # Change %, Symbol, Price, Avg Volume, Float, Rel Volume, Time, Catalyst
+        display_cols = ['Change %', 'Symbol', 'Price', 'Avg Volume', 'Float', 'Rel Volume', 'Time', 'Catalyst']
         df_display = df_res[display_cols].copy()
         
-        # Format large numbers for display (Volume is int, change to string formatted)
-        df_display['Volume'] = df_display['Volume'].apply(format_number)
+        # Format large numbers for display
+        df_display['Avg Volume'] = df_display['Avg Volume'].apply(format_number)
         
-        # Styling
+        # Styling with increased height
         st.dataframe(
             df_display.style
             .format({
@@ -96,7 +99,7 @@ if 'filtered_results' in st.session_state:
             .background_gradient(subset=['Change %'], cmap='RdYlGn', vmin=0)
             .background_gradient(subset=['Rel Volume'], cmap='Blues')
             .set_properties(**{'text-align': 'center'})
-        , use_container_width=True, height=1000)
+        , use_container_width=True, height=1200)  # Increased from 1000 to 1200
     else:
         st.warning("No matches found in this batch. Try 'Shuffle Tickers' to scan a new group or lower the criteria.")
         
