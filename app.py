@@ -156,8 +156,7 @@ if 'scan_results' in st.session_state:
                 'Change %': '{:.2f}',
                 'Rel Volume': '{:.2f}'
             })
-            .background_gradient(subset=['Change %'], cmap='RdYlGn', vmin=0)
-            .background_gradient(subset=['Rel Volume'], cmap='Blues')
+            # Removed background_gradient due to missing matplotlib dependency
             ,
             height=1000, 
             column_config={
